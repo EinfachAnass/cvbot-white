@@ -111,7 +111,7 @@ def process_image(sources, output_path,annotation_dir):
                 
                 # uncomment to save only football images
                 # cv2.imwrite(os.path.join(output_dir, filename), cv_img) 
-        # Comment to prevent saving images without football 
+        # Uncomment to save all the images 
         # cv2.imwrite(os.path.join(output_dir, filename), cv_img)
 
     # Write OpenImages-style annotations
