@@ -1,36 +1,60 @@
-import os
-import csv
 import cv2
 import torch
-from ultralytics import YOLO
 from PIL import Image
+import os
+import csv
+import numpy as np
+from transformers import GroundingDinoProcessor, GroundingDinoForObjectDetection
 from transformers import CLIPProcessor, CLIPModel
 
-# Get model from YOLO (Download automatically if not present)
-yolo_model = YOLO("yolo12x.pt")
-# Get model CLIP (Download automatically if not present)
-clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+# sources = "debug_fail"
+# output_dir = "output"
+sources = "./Debug/debug_fail"
+output_dir = "./Debug/output"
+os.makedirs(output_dir, exist_ok=True)
+annotation_dir = "./Debug/annotations"
+os.makedirs(annotation_dir, exist_ok=True)
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+gd_model_id = "IDEA-Research/grounding-dino-base"
+processor = GroundingDinoProcessor.from_pretrained(gd_model_id)
+gd_model = GroundingDinoForObjectDetection.from_pretrained(gd_model_id).to(device)
+
+clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
 clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 clip_model.eval()
 
 # Constants
 FOOTBALL_LABEL_ID = "201" # from OpenImagesV7 YAML for football
 FOOTBALL_DISPLAY_NAME = "Football"
-ANNOTATION_FILE_MAIN = "./../annotations/openimage_annotations.csv"
-ANNOTATION_FILE_TRAIN = "./../annotations/train-annotations-bbox.csv"
-CLASS_DESCRIPTION_FILE = "./../annotations/class-descriptions-boxable.csv"
+ANNOTATION_FILE_MAIN = annotation_dir + "/openimage_annotations.csv"
+ANNOTATION_FILE_TRAIN = annotation_dir + "/train-annotations-bbox.csv"
+CLASS_DESCRIPTION_FILE = annotation_dir + "/class-descriptions-boxable.csv"
+THRESHOLD = 0.55
+PROMPT = "ball"
 
-def is_football(crop_pil):
-    inputs = clip_processor(text=["a football", "not a football"], images=crop_pil, return_tensors="pt", padding=True)
+def detect_regions(image, prompt=PROMPT, box_thresh=0.3):
+    inputs = processor(images=image, text=prompt + ".", return_tensors="pt").to(device)
+    with torch.no_grad():
+        outputs = gd_model(**inputs)
+
+    width, height = image.size
+    results = processor.post_process_grounded_object_detection(
+        outputs, threshold=box_thresh, target_sizes=[(height, width)]
+    )[0]
+
+    boxes = results["boxes"].cpu().numpy()
+    scores = results["scores"].cpu().numpy()
+    return boxes, scores
+
+def is_football(crop_pil, threshold=THRESHOLD):
+    inputs = clip_processor(text=["a football", "not a football"],
+                            images=crop_pil, return_tensors="pt", padding=True).to(device)
     with torch.no_grad():
         outputs = clip_model(**inputs)
         probs = outputs.logits_per_image.softmax(dim=1)
-    return probs[0][0] > 0.7
-
-def draw_bbox(image, box, label, color=(0, 255, 0)):
-    x1, y1, x2, y2 = map(int, box)
-    cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
-    cv2.putText(image, label, (x1, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+    return bool(probs[0][0] > threshold)
 
 def draw_overlay(image, box, color=(0, 255, 0), alpha=0.5):
     x1, y1, x2, y2 = map(int, box)
@@ -38,42 +62,41 @@ def draw_overlay(image, box, color=(0, 255, 0), alpha=0.5):
     cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
     cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
 
-def process_images(sources, output_dir, annotation_dir):
+def process_image(sources, output_path,annotation_dir):
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(annotation_dir, exist_ok=True)
     annotation_rows = []
 
     for filename in os.listdir(sources):
-        if not filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+        if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
             continue
-
+        
+        # print(f"Processing: {filename}")
         path = os.path.join(sources, filename)
-        image = cv2.imread(path)
-        if image is None:
-            continue
-        orig = image.copy()
-        h, w = image.shape[:2]
+
+        pil = Image.open(path).convert("RGB")
+        cv_img = cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
+
+        width, height = pil.size
         image_id = os.path.splitext(filename)[0]
 
-        results = yolo_model(image)[0]
-        for box, cls_id in zip(results.boxes.xyxy, results.boxes.cls):
-            if yolo_model.names[int(cls_id)] != "sports ball":
+        boxes, scores = detect_regions(pil)
+
+        for box, score in zip(boxes, scores):
+            x1, y1, x2, y2 = map(int, box)
+            if x2 <= x1 or y2 <= y1:
                 continue
 
-            x1, y1, x2, y2 = map(int, box.tolist())
-            crop = orig[y1:y2, x1:x2]
+            crop = pil.crop((x1, y1, x2, y2))
             if crop.size == 0:
                 continue
 
-            crop_pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
-            if is_football(crop_pil):
-                draw_overlay(image, (x1, y1, x2, y2))
-                draw_bbox(image, (x1, y1, x2, y2), "football")
-
-                XMin = x1 / w
-                XMax = x2 / w
-                YMin = y1 / h
-                YMax = y2 / h
+            if is_football(crop):
+                draw_overlay(cv_img, box)
+                XMin = x1 / width
+                XMax = x2 / width
+                YMin = y1 / height
+                YMax = y2 / height
 
                 annotation_rows.append([
                     image_id,
@@ -84,8 +107,12 @@ def process_images(sources, output_dir, annotation_dir):
                     0, 0, 0, 0, 0
                 ])
 
-        # Save modified image
-        cv2.imwrite(os.path.join(output_dir, filename), image)
+                # print(f"Detected football in {filename} with score {score:.2f}")
+                
+                # uncomment to save only football images
+                # cv2.imwrite(os.path.join(output_dir, filename), cv_img) 
+        # Comment to prevent saving images without football 
+        # cv2.imwrite(os.path.join(output_dir, filename), cv_img)
 
     # Write OpenImages-style annotations
     # IsOccluded ... IsInside are left 0. could be manually set.
@@ -104,8 +131,4 @@ def process_images(sources, output_dir, annotation_dir):
         writer = csv.writer(f)
         writer.writerow([FOOTBALL_LABEL_ID, FOOTBALL_DISPLAY_NAME])
 
-# Run
-sources = "./../data/ball"
-output_dir = "outputsYOLO12x_clip_annotated"
-annotation_dir = "./../annotations"
-process_images(sources, output_dir, annotation_dir)
+process_image(sources, output_dir, annotation_dir)
