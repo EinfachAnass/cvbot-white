@@ -11,9 +11,7 @@ from transformers import CLIPProcessor, CLIPModel
 # output_dir = "output"
 sources = "./Debug/debug_fail"
 output_dir = "./Debug/output"
-os.makedirs(output_dir, exist_ok=True)
 annotation_dir = "./Debug/annotations"
-os.makedirs(annotation_dir, exist_ok=True)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -62,15 +60,54 @@ def draw_overlay(image, box, color=(0, 255, 0), alpha=0.5):
     cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
     cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
 
-def process_image(sources, output_path,annotation_dir):
+def write_annotations(file_path, headers, rows):
+    file_exists = os.path.exists(file_path)
+    write_header = True
+
+    if file_exists:
+        with open(file_path, "r", newline="") as f:
+            first_line = f.readline()
+            if first_line.strip() == ",".join(headers):
+                write_header = False
+
+    with open(file_path, "a", newline="") as f:
+        writer = csv.writer(f)
+        if not file_exists or write_header:
+            writer.writerow(headers)
+        writer.writerows(rows)
+
+def get_annotated_image_ids(annotation_file):
+    annotated_ids = set()
+    if os.path.exists(annotation_file):
+        with open(annotation_file, "r", newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                annotated_ids.add(row["ImageID"])
+    return annotated_ids
+
+def process_image(sources, output_path, annotation_dir):
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(annotation_dir, exist_ok=True)
     annotation_rows = []
+
+    already_annotated = get_annotated_image_ids(ANNOTATION_FILE_TRAIN)
+
+    for filename in os.listdir(sources):
+        if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
+            continue
+
+
+
 
     for filename in os.listdir(sources):
         if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
             continue
         
+        image_id = os.path.splitext(filename)[0]
+        if image_id in already_annotated:
+            # print(f"Skipping already annotated image: {filename}")
+            continue
+
         # print(f"Processing: {filename}")
         path = os.path.join(sources, filename)
 
@@ -122,10 +159,7 @@ def process_image(sources, output_path,annotation_dir):
         "IsOccluded", "IsTruncated", "IsGroupOf", "IsDepiction", "IsInside"
     ]
     for file in [ANNOTATION_FILE_MAIN, ANNOTATION_FILE_TRAIN]:
-        with open(file, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(headers)
-            writer.writerows(annotation_rows)
+        write_annotations(file, headers, annotation_rows)
 
     with open(CLASS_DESCRIPTION_FILE, "w", newline="") as f:
         writer = csv.writer(f)
