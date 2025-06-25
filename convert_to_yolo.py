@@ -47,3 +47,34 @@ def convert_openimage_to_yolo(annotation_file, images_dir, output_dir):
             # create YOLO format string and add it to the annotations list
             annotations[image_id].append(f"{class_id} {x_center} {y_center} {width} {height}")
     
+    # Copy images and create label files
+    image_extensions = ['.jpg', '.jpeg', '.png', '.bmp']
+
+    # counter to track how many images we have processed successfully
+    processed_count = 0
+    
+    # here we loop through each image in the annotations and copy the image to the YOLO images directory
+    for image_id, labels in annotations.items():
+        # Find the image file
+        image_found = False # flag to check if the image is found
+        for file_extension in image_extensions: # loop through the image extensions we created and init before
+            image_path = os.path.join(images_dir, f"{image_id}{file_extension}") # image id + file extension. (e. g football1 + .jpg = football1.jpg)
+            if os.path.exists(image_path):
+                # Copy image to YOLO images directory
+                shutil.copy2(image_path, os.path.join(yolo_images_dir, f"{image_id}{file_extension}"))
+                
+                # Create label file
+                label_path = os.path.join(yolo_labels_dir, f"{image_id}.txt")
+                with open(label_path, 'w') as f:
+                    for label in labels:
+                        f.write(label + '\n')
+                
+                image_found = True
+                processed_count += 1
+                break
+        
+        if not image_found:
+            print(f"Warning: Image {image_id} not found in {images_dir}")
+    
+    #print(f"Processed {processed_count} images with annotations")
+    #print(f"YOLO DAtaset created in: {output_dir}")
