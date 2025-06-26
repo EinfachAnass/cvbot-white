@@ -50,6 +50,7 @@ def convert_openimage_to_yolo(annotation_file, images_dir, output_dir):
     # Copy images and create label files
     image_extensions = ['.jpg', '.jpeg', '.png', '.bmp']
 
+
     # counter to track how many images we have processed successfully
     processed_count = 0
     
@@ -78,3 +79,27 @@ def convert_openimage_to_yolo(annotation_file, images_dir, output_dir):
     
     #print(f"Processed {processed_count} images with annotations")
     #print(f"YOLO DAtaset created in: {output_dir}")
+    
+    # Create dataset.yaml file
+    # YOLO dataset configuration
+    dataset_yaml = f"""path: {os.path.abspath(output_dir)}
+train: images
+val: images
+
+# Classes
+nc: 1  # number of classes
+names: ['football']  # class names
+"""
+    
+    with open(os.path.join(output_dir, "dataset.yaml"), 'w') as f:
+        f.write(dataset_yaml)
+    
+    print(f"Dataset configuration saved to: {os.path.join(output_dir, 'dataset.yaml')}")
+
+if __name__ == "__main__":
+    # Paths
+    annotation_file = "../data/annotations/train-annotations-bbox.csv"
+    images_dir = "../data/ball"
+    output_dir = "../data/yolo_dataset"
+    
+    convert_openimage_to_yolo(annotation_file, images_dir, output_dir) 
