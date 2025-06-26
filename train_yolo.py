@@ -32,3 +32,15 @@ def train_yolo_model():
     
     # Save the final model
     model.save(os.path.join(output_dir, 'football_detector', 'best_model.pt')) # save the model in the output directory
+
+
+    print(f"Training completed. Model saved to: {os.path.join(output_dir, 'football_detector')}")
+    
+    # Validate the model
+    print("Validating the model:\n")
+    metrics = model.val()
+
+    # Print validation metrics
+    print(f"Validation metrics: {metrics}")
+
+    return model
