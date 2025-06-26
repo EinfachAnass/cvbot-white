@@ -31,8 +31,8 @@ def train_yolo_model():
     )
     
     # Save the final model
-    model.save(os.path.join(output_dir, 'football_detector', 'best_model.pt')) # save the model in the output directory
-
+    # model.save(os.path.join(output_dir, 'football_detector', 'best.pt')) # save the model in the output directory
+    # Yolo saves automatically the best model as best.pt? need to check this!
 
     print(f"Training completed. Model saved to: {os.path.join(output_dir, 'football_detector')}")
     
@@ -44,3 +44,35 @@ def train_yolo_model():
     print(f"Validation metrics: {metrics}")
 
     return model
+
+
+def export_for_deployment(model_path, output_dir="../models"):
+    """
+    A function to convert bzw. export the model for Raspberry Pi deplyment.
+    """
+    # load the trained model for export
+    model = YOLO(model_path)
+    
+    # Export to ONNX format 
+    onnx_path = model.export(format='onnx', 
+                           imgsz=640, # image size
+                           half=True, # use half precision for smaller size
+                           simplify=True) # optimize the model
+    
+    print(f"Model exported to ONNX: {onnx_path}")
+    
+    return onnx_path
+
+if __name__ == "__main__":
+    #print("Starting YOLOv8 training for football detection:\n")
+    
+    # Train the model
+    model = train_yolo_model()
+    
+    # Export for deployment
+    best_model_path = "../models/football_detector/best.pt"
+    if os.path.exists(best_model_path):
+        print("\nExporting model for deployment.....")
+        export_for_deployment(best_model_path)
+    else:
+        print(f"model notfound at {best_model_path}") 
