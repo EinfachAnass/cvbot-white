@@ -1,0 +1,18 @@
+description: Ultralytics best model trained on /home/anass/Desktop/SoSe25/RAML/GitRAML/cvbot-white/data/yolo_dataset/dataset.yaml
+author: Ultralytics
+date: '2025-07-10T22:04:15.874670'
+version: 8.3.143
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: football
+args:
+  batch: 1
+  half: true
+channels: 3
