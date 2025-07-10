@@ -7,11 +7,10 @@ import numpy as np
 from transformers import GroundingDinoProcessor, GroundingDinoForObjectDetection
 from transformers import CLIPProcessor, CLIPModel
 
-# sources = "debug_fail"
-# output_dir = "output"
-sources = "./Debug/debug_fail"
-output_dir = "./Debug/output"
-annotation_dir = "./Debug/annotations"
+# Use ball directory from data folder
+sources = "./data/ball"
+output_dir = "./annot_data/output"
+annotation_dir = "./annot_data/annotations"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -95,13 +94,6 @@ def process_image(sources, output_path, annotation_dir):
     for filename in os.listdir(sources):
         if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
             continue
-
-
-
-
-    for filename in os.listdir(sources):
-        if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
-            continue
         
         image_id = os.path.splitext(filename)[0]
         if image_id in already_annotated:
@@ -147,9 +139,9 @@ def process_image(sources, output_path, annotation_dir):
                 # print(f"Detected football in {filename} with score {score:.2f}")
                 
                 # uncomment to save only football images
-                # cv2.imwrite(os.path.join(output_dir, filename), cv_img) 
+                cv2.imwrite(os.path.join(output_dir, filename), cv_img) 
         # Uncomment to save all the images 
-        # cv2.imwrite(os.path.join(output_dir, filename), cv_img)
+        cv2.imwrite(os.path.join(output_dir, filename), cv_img)
 
     # Write OpenImages-style annotations
     # IsOccluded ... IsInside are left 0. could be manually set.
