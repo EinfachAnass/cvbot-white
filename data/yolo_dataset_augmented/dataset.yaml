@@ -1,0 +1,10 @@
+path: /home/anass/Desktop/SoSe25/RAML/GitRAML/testing/cvbot-white/utils/../../cvbot-white/data/yolo_dataset_augmented
+train: images
+val: images
+
+# Classes
+nc: 1  # number of classes
+names: ['football']  # class names
+
+# Dataset info
+total_images: 664
