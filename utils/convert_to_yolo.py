@@ -50,7 +50,6 @@ def convert_openimage_to_yolo(annotation_file, images_dir, output_dir):
     # Copy images and create label files
     image_extensions = ['.jpg', '.jpeg', '.png', '.bmp']
 
-
     # counter to track how many images we have processed successfully
     processed_count = 0
     
@@ -77,6 +76,15 @@ def convert_openimage_to_yolo(annotation_file, images_dir, output_dir):
         if not image_found:
             print(f"Warning: Image {image_id} not found in {images_dir}")
     
+    # Ensure every image has a label file (empty if no annotation)
+    for filename in os.listdir(images_dir):
+        name, ext = os.path.splitext(filename)
+        if ext.lower() not in image_extensions:
+            continue
+        label_path = os.path.join(yolo_labels_dir, f"{name}.txt")
+        if not os.path.exists(label_path):
+            open(label_path, 'w').close()  # Create empty file
+
     #print(f"Processed {processed_count} images with annotations")
     #print(f"YOLO DAtaset created in: {output_dir}")
     
@@ -97,13 +105,10 @@ names: ['football']  # class names
     print(f"Dataset configuration saved to: {os.path.join(output_dir, 'dataset.yaml')}")
 
 if __name__ == "__main__":
-    # Get the directory where this script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)  # Go up one level to project root
-    
-    # Paths relative to project root
-    annotation_file = os.path.join(project_root, "data", "annot_data", "annotations", "train-annotations-bbox.csv")
-    images_dir = os.path.join(project_root, "data", "ball")
-    output_dir = os.path.join(project_root, "data", "yolo_dataset")
+    # Paths
+    annotation_file = "./data/annotations/openimage_annotations.csv"
+    images_dir = "./data/images"
+    output_dir = "./data/yolo_dataset"
+
     
     convert_openimage_to_yolo(annotation_file, images_dir, output_dir) 
