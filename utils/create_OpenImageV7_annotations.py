@@ -8,9 +8,9 @@ from transformers import GroundingDinoProcessor, GroundingDinoForObjectDetection
 from transformers import CLIPProcessor, CLIPModel
 
 # Use ball directory from data folder
-sources = "./data/ball"
-output_dir = "./annot_data/output"
-annotation_dir = "./annot_data/annotations"
+sources = "./data/images"
+output_dir = "./data/annotated_images"
+annotation_dir = "./data/annotations"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
