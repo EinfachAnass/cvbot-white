@@ -10,7 +10,7 @@ def train_yolo_model():
     project_root = os.path.dirname(script_dir)
     
     # Paths
-    dataset_yaml = os.path.join(project_root, "data", "yolo_dataset", "dataset.yaml")
+    dataset_yaml = os.path.join(project_root, "data", "yolo_dataset_augmented", "dataset.yaml")
     output_dir = os.path.join(project_root, "models")
     
     # Create output directory
@@ -22,16 +22,17 @@ def train_yolo_model():
     # Training configuration
     results = model.train(
         data=dataset_yaml,
-        epochs=100,  # Number of epochs
+        epochs=300,  # More epochs for better training
         imgsz=640,   # Image size
-        batch=16,    # Batch size
-        device='cpu',  # Use CPU for training or 'cuda' for GPU
+        batch=16,    # Optimal batch size for GPU
+        device='cuda',  # Use GPU for maximum performance
         project=output_dir, # output directory for the model
         name='football_detector', # name of the model
-        patience=20,  # Early stopping patience if no improvement after 20 epochs
+        patience=50,  # Early stopping patience if no improvement after 50 epochs
         save=True, # save the model after each epoch
         save_period=10,  # Save every 10 epochs
-        verbose=True # print the training progress
+        verbose=True, # print the training progress
+        augment=True  # Enable data augmentation for better model generalization
     )
     
     # Save the final model
@@ -61,14 +62,14 @@ def export_for_deployment(model_path, output_dir=None):
     # load the trained model for export
     model = YOLO(model_path)
     
-    # Export to NCNN format 
-    ncnn_path = model.export(format='ncnn', 
-                           imgsz=640, # image size
-                           half=True) # we use half precision for smaller size
+    # Export to ONNX format 
+    onnx_path = model.export(format='onnx', 
+                            imgsz=640, # image size
+                            half=True) # use half precision for smaller size
     
-    print(f"Model exported to NCNN: {ncnn_path}")
+    print(f"Model exported to ONNX: {onnx_path}")
     
-    return ncnn_path
+    return onnx_path
 
 if __name__ == "__main__":
     #print("Starting YOLOv8 training for football detection:\n")
