@@ -5,3 +5,5 @@
 
 /.venv/
 /.env/
+example.ipynb
+.env
