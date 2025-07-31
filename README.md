@@ -32,7 +32,7 @@ source cvbot-env/bin/activate
 cvbot-env\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements_.txt
 ```
 
 ## Training Workflow
