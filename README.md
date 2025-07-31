@@ -7,7 +7,7 @@ A computer vision system for real-time football detection using YOLOv8 and auton
 - Python 3.12+
 - CUDA-compatible GPU (recommended for training)
 
-### Option 1: Conda Environment (Recommended)
+### Option 1: Conda Environment
 
 ```bash
 # Clone the repository
