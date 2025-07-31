@@ -7,3 +7,5 @@
 /.env/
 example.ipynb
 .env
+
+*.jpg
