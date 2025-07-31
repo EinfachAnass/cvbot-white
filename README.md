@@ -124,3 +124,29 @@ models/ football_detector/
     results.png      # Training results
     confusion_matrix.png
 ```
+
+## Robot Control
+
+### PID Control for Autonomous Movement
+
+The main robot control script combines computer vision with PID control for autonomous football tracking:
+
+```bash
+# Run the autonomous football tracking robot
+python pid.py
+```
+
+**What it does:**
+- Loads the trained YOLOv8 football detection model
+- Captures video from the robot's camera
+- Detects football position in real-time
+- Uses PID control to track and follow the football
+- Controls robot movement (forward/backward, left/right, rotation)
+- Saves annotated frames showing detection and control parameters
+
+
+**Control Logic:**
+- Robot steers left/right based on football position
+- Moves forward when football is far away
+- Stops when football is close
+- Moves backward when football is too close
